@@ -1,0 +1,51 @@
+01  001000  000000  COPY     START    1000                      COPY FILE FROM IN TO OUT
+01  001000  140000  FIRST    STL      RETADR                    SAVE RETURN ADDRESS
+01  001003  480000  CLOOP    JSUB     RDREC                     READ INPUT RECORD
+00  001006  000000           LDA      LENGTH                    TEST FOR EOF (LENGTH=0)
+00  001009  280000           COMP     ZERO
+00  00100C  300000           JEQ      ENDFIL                    EXIT IF EOF FOUND
+00  00100F  480000           JSUB     WRREC                     WRITE OUTPUT RECORD
+00  001012  3C0000           J        CLOOP                     LOOP
+01  001015  000000  ENDFIL   LDA      EOF                       INSERT EOF MARKER
+00  001018  0C0000           STA      BUFFER
+00  00101B  000000           LDA      THREE                     SET LENGTH = 3
+00  00101E  0C0000           STA      LENGTH
+00  001021  480000           JSUB     WRREC                     WRITE EOF
+00  001024  080000           LDL      RETADR                    RETURN TO CALLER
+00  001027  4C0000           RSUB
+01  00102A  000000  EOF      BYTE     C'EOF'
+01  00102D  000000  THREE    WORD     3 
+01  001030  000000  ZERO     WORD     0 
+01  001033  000000  RETADR   RESW     1 
+01  001036  000000  LENGTH   RESW     1                         LENGTH OF RECORD
+01  001039  000000  BUFFER   RESB     4096                      4096-BYTE BUFFER AREA
+99  002039  000000  .
+99  002039  000000  .        SUBROUTINE TO READ INTO BUFFER
+99  002039  000000  .
+01  002039  040000  RDREC    LDX      ZERO                      CLEAR LOOP COUNTER
+00  00203C  000000           LDA      ZERO                      CLEAR A TO ZERO
+01  00203F  E00000  RLOOP    TD       INPUT                     TEST INPUT DEVICE
+00  002042  300000           JEQ      RLOOP                     LOOP UNTIL READY
+00  002045  D80000           RD       INPUT                     READ CHARACTER INTO A
+00  002048  280000           COMP     ZERO                      TEST FOR END OF RECORD
+00  00204B  300000           JEQ      EXIT                      EXIT LOOP IF EOR
+00  00204E  540000           STCH     BUFFER,X                  STORE CHARACTER IN BUFFER
+00  002051  2C0000           TIX      MAXLEN                    LOOP UNLESS MAX LENGTH
+00  002054  380000           JLT      RLOOP                       HAS BEEN REACHED
+01  002057  100000  EXIT     STX      LENGTH                    SAVE RECORD LENGTH
+00  00205A  4C0000           RSUB                               RETURN TO CALLER
+01  00205D  000000  INPUT    BYTE     X'F1'                     CODE FOR INPUT DEVICE
+01  00205E  000000  MAXLEN   WORD     4096
+99  002061  000000  .
+99  002061  000000  .        SUBROUTINE TO WRITE RECORD FROM BUFFER
+99  002061  000000  .
+01  002061  040000  WRREC    LDX      ZERO
+01  002064  E00000  WLOOP    TD       OUTPUT                    TEST OUTPUT DEVICE
+00  002067  300000           JEQ      WLOOP                     LOOP UNTIL READY
+00  00206A  500000           LDCH     BUFFER,X                  GET CHARACTER FROM BUFFER
+00  00206D  DC0000           WD       OUTPUT                    WRITE CHARACTER
+00  002070  2C0000           TIX      LENGTH                    LOOP UNTIL ALL CHARACTERS
+00  002073  380000           JLT      WLOOP                       HAVE BEEN WRITTEN
+00  002076  4C0000           RSUB                               RETURN TO CALLER
+01  002079  000000  OUTPUT   BYTE     X'05'                     CODE FOR OUTPUT DEVICE
+00  00207A  000000           END      COPY
